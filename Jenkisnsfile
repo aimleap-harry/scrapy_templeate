@@ -129,6 +129,8 @@ The Jenkins Team
                 } catch (Exception e) {
                     echo "Failed to send email: ${e.getMessage()}"
                 }
+                // Clean the workspace after every build
+                cleanWs()
             }
         }
     }
