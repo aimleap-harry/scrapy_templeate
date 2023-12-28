@@ -1,1 +1,10 @@
-
+{
+     "user_email": "harrylmrichard@gmail.com",
+    "host": "167.86.85.210",
+    "username": "root",
+    "password": "Up2@gTH9+U(uaX",
+    "instance_name": "Pandora",
+    "instance_type": "ubuntu",
+    "environment": "production"
+    
+}
