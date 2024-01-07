@@ -8,7 +8,17 @@ pipeline {
             }
         }
 
-       
+        stage('Checkout Code from GitHub') {
+            steps {
+                checkout([$class: 'GitSCM', 
+                          branches: [[name: '*/main']], // Corrected from 'master' to 'main'
+                          userRemoteConfigs: [
+                              [url: 'https://github.com/aimleap-harry/scrapy_templeate.git',
+                               credentialsId: 'test']
+                          ]
+                ])
+            }
+        }
 
         stage('SonarQube Analysis') {
             environment {
@@ -55,10 +65,7 @@ pipeline {
             steps {
                 script {
                     def vmDetails = readJSON file: 'vm_details/vm_details.json'
-                    echo "Initial VM Details: ${vmDetails}" // Debugging line
-
                     if (vmDetails.environment == 'staging') {
-                        echo "Overwriting VM Details for Staging Environment" // Debugging line
                         vmDetails = [
                             host: "209.145.55.222",
                             username: "root",
@@ -67,7 +74,6 @@ pipeline {
                             instance_type: "ubuntu"
                         ]
                     }
-                    echo "Final VM Details: ${vmDetails}" // Debugging line
                     currentBuild.description = "Moving 'Scrapy-template' to ${vmDetails.host}"
                     stash includes: 'Scrapy-template/**', name: 'scrapyTemplateStash'
                 }
@@ -87,8 +93,8 @@ pipeline {
                     def newFolderName = sh(script: "cat config_file | grep 'folder_name' | cut -d'=' -f2", returnStdout: true).trim()
 
                     sh "${sshpassPath} -p '${remotePassword}' ssh -o StrictHostKeyChecking=no ${remoteUsername}@${remoteHost} 'mkdir -p /root/projects/${newFolderName}'"
-                    sh "${sshpassPath} -p '${remotePassword}' scp -o StrictHostKeyChecking=no -r *_dag.py ${remoteUsername}@${remoteHost}:/root/airflow/dags/"
-                    sh "${sshpassPath} -p '${remotePassword}' scp -o StrictHostKeyChecking=no -r Scrapy-template/ ${remoteUsername}@${remoteHost}:/root/projects/${newFolderName}/"
+                    sh "${sshpassPath} -p '${remotePassword}' scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r *_dag.py ${remoteUsername}@${remoteHost}:/root/airflow/dags/"
+                    sh "${sshpassPath} -p '${remotePassword}' scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r Scrapy-template/ ${remoteUsername}@${remoteHost}:/root/projects/${newFolderName}/"
                 }
             }
         }
