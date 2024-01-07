@@ -9,16 +9,12 @@ pipeline {
         }
 
         stage('Checkout Code from GitHub') {
-            steps {
-                checkout([$class: 'GitSCM', 
-                          branches: [[name: '*/main']], // Corrected from 'master' to 'main'
-                          userRemoteConfigs: [
-                              [url: 'https://github.com/aimleap-harry/scrapy_templeate.git',
-                               credentialsId: 'test']
-                          ]
-                ])
-            }
-        }
+    steps {
+        // Jenkins automatically checks out the correct branch using the configurations specified in the job's UI settings
+        checkout scm
+    }
+}
+
 
         stage('SonarQube Analysis') {
             environment {
