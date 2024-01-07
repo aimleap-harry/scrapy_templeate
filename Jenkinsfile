@@ -130,6 +130,9 @@ The Jenkins Team
     }
 }
 
+// Updated readFileFromGit function to dynamically determine the branch
 def readFileFromGit(String filePath) {
-    return sh(script: "git show origin/main:${filePath}", returnStdout: true).trim()
+    // Get the name of the current branch being built
+    def currentBranch = env.BRANCH_NAME ?: 'main' // Defaults to 'main' if BRANCH_NAME is not set
+    return sh(script: "git show origin/${currentBranch}:${filePath}", returnStdout: true).trim()
 }
