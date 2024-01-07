@@ -19,5 +19,5 @@ dag = DAG('smart_scrapy',
 
 run_spider_task = BashOperator(
     task_id='run_scrapy',
-    bash_command='cd /root/whiskyscraper && scrapy crawl whisky -o output.json',
+    bash_command='cd /root/acep/acep && scrapy crawl jobposts -o /root/airflow_outputs/book.csv',
     dag=dag)
