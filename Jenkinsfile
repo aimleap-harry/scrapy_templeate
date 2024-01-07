@@ -10,10 +10,10 @@ pipeline {
 
         stage('Checkout Code from GitHub') {
             steps {
-                checkout([$class: 'GitSCM', 
-                          branches: [[name: '*/main']], // Corrected from 'master' to 'main'
+                checkout([$class: 'GitSCM',
+                          branches: [[name: '*/main']], // Using 'main' branch
                           userRemoteConfigs: [
-                              [url: 'https://github.com/aimleap-harry/scrapy_templeate.git',
+                              [url: 'https://github.com/HarryRichard08/jenkins_test.git',
                                credentialsId: 'test']
                           ]
                 ])
@@ -65,7 +65,10 @@ pipeline {
             steps {
                 script {
                     def vmDetails = readJSON file: 'vm_details/vm_details.json'
+                    echo "Initial VM Details: ${vmDetails}" // Debugging line
+
                     if (vmDetails.environment == 'staging') {
+                        echo "Overwriting VM Details for Staging Environment" // Debugging line
                         vmDetails = [
                             host: "209.145.55.222",
                             username: "root",
@@ -74,6 +77,7 @@ pipeline {
                             instance_type: "ubuntu"
                         ]
                     }
+                    echo "Final VM Details: ${vmDetails}" // Debugging line
                     currentBuild.description = "Moving 'Scrapy-template' to ${vmDetails.host}"
                     stash includes: 'Scrapy-template/**', name: 'scrapyTemplateStash'
                 }
@@ -93,8 +97,8 @@ pipeline {
                     def newFolderName = sh(script: "cat config_file | grep 'folder_name' | cut -d'=' -f2", returnStdout: true).trim()
 
                     sh "${sshpassPath} -p '${remotePassword}' ssh -o StrictHostKeyChecking=no ${remoteUsername}@${remoteHost} 'mkdir -p /root/projects/${newFolderName}'"
-                    sh "${sshpassPath} -p '${remotePassword}' scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r *_dag.py ${remoteUsername}@${remoteHost}:/root/dags/"
-                    sh "${sshpassPath} -p '${remotePassword}' scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r Scrapy-template/ ${remoteUsername}@${remoteHost}:/root/projects/${newFolderName}/"
+                    sh "${sshpassPath} -p '${remotePassword}' scp -o StrictHostKeyChecking=no -r *_dag.py ${remoteUsername}@${remoteHost}:/root/airflow/dags/"
+                    sh "${sshpassPath} -p '${remotePassword}' scp -o StrictHostKeyChecking=no -r Scrapy-template/ ${remoteUsername}@${remoteHost}:/root/projects/${newFolderName}/"
                 }
             }
         }
@@ -104,10 +108,13 @@ pipeline {
         always {
             script {
                 try {
-                    def vmDetails = readJSON file: 'vm_details/vm_details.json'
-                    echo "Debug - VM Details: ${vmDetails}"
+                    // Read the email address from the 'email.txt' file in the Git repository
+                    def recipientEmail = readFileFromGit('email.txt').trim()
+                    echo "Preparing to send email to: ${recipientEmail}" // For debugging
 
-                    emailext(
+                    // Send the email
+                    mail(
+                        to: recipientEmail,
                         subject: "Build Notification for Branch '${env.BRANCH_NAME}'",
                         body: """Hello,
 
@@ -122,20 +129,21 @@ Please review the build and attached changes.
 
 Best regards,
 The Jenkins Team
-""",
-                        to: 'harry.r@aimleap.com', // Send the email to the specified address
-                        mimeType: 'text/plain'
+"""
                     )
+                    echo "Email should have been sent to: ${recipientEmail}"
                 } catch (Exception e) {
-                    echo "Failed to send email: ${e.getMessage()}"
+                    echo "Failed to send email. Printing stack trace for debugging:"
+                    e.printStackTrace()
+                } finally {
+                    // Clean the workspace after every build
+                    cleanWs()
                 }
-                // Clean the workspace after every build
-                cleanWs()
             }
         }
     }
 }
 
 def readFileFromGit(String filePath) {
-    return sh(script: "git show origin/main:${filePath}", returnStdout: true).trim() // Corrected from 'master' to 'main'
+    return sh(script: "git show origin/main:${filePath}", returnStdout: true).trim()
 }
